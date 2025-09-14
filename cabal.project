@@ -1,0 +1,6 @@
+packages: ./*.cabal
+
+source-repository-package
+  type: git
+  location: https://github.com/schell/reflex-sdl2
+  tag: 87d6ab9be1bdf32490e5098a1404b6811f154e97
