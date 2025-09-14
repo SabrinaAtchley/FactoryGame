@@ -68,8 +68,6 @@ executable FactoryGame
       InputHandler.Action,
       InputHandler.Map,
       Renderer,
-      Renderer.Drawable,
-      UIElement,
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
