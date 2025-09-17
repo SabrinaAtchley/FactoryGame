@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Game (
   GameState (..),
@@ -38,6 +37,11 @@ data GameState = GameState {
   getRenderer :: SDL.Renderer
 }
 
+-- Holds the entire state of the game world
+--data World = World {
+--  _tiles ::
+--}
+
 data GameSettings = GameSettings {
   getScreenSize :: (CInt, CInt),
   getMaxFPS :: Word32
@@ -47,7 +51,7 @@ data GameSettings = GameSettings {
 defaultSettings :: GameSettings
 defaultSettings = GameSettings {
   getScreenSize = (640, 480),
-  getMaxFPS = 0
+  getMaxFPS = 120
 }
 
 
@@ -57,6 +61,19 @@ gameTickRate = fromRational (1 / 20)
 
 getGameTickEvent :: (ReflexSDL2 t m) => m (Event t TickInfo)
 getGameTickEvent = tickLossyFromPostBuildTime gameTickRate
+
+utcTimeToNominalDiffTime :: UTCTime -> NominalDiffTime
+utcTimeToNominalDiffTime = fromRational . toRational . utctDayTime
+
+
+-- Returns an event which fires approximately `maxFPS` times per second
+getRenderTickEvent :: (ReflexSDL2 t m)
+  => Word32
+  -- ^ Max FPS. It's 32 bits because most computers are optimized to use these
+  -> m (Event t Word32)
+getRenderTickEvent maxFPS = do
+  tickEv <- tickLossyFromPostBuildTime (1 / fromIntegral maxFPS)
+  performEventDelta tickEv
 
 type Point2D a = (a, a)
 
@@ -72,7 +89,8 @@ subtractPoint2D (x1, y1) (x2, y2) = (x2 - x1, y2 - y1)
 process :: (ReflexSDL2 t m) => GameState -> m ()
 process _gameState@(GameState settings window renderer) = do
   gameTickEvent <- getGameTickEvent
-  -- putDebugLnE gameTickEvent (show . _tickInfo_n)
+  renderTickEvent <- getRenderTickEvent (getMaxFPS settings)
+  -- putDebugLnE renderTickEvent (("diffTime: " ++) . show)
 
   moveRightDyn <- Input.getInputActionDyn Input.Map.defaultMap window Input.MoveRight
   putDebugLnE (updated moveRightDyn) (("MoveRight: " ++) . show)
@@ -106,20 +124,21 @@ process _gameState@(GameState settings window renderer) = do
             , ( velocityHelper (-8, 0) ) <$> (updated moveLeftDyn)
             , ( velocityHelper (0, -20) ) <$> (updated jumpDyn)
           ]
-        foldDyn gravityHelper (232, 32) (tag (current velDyn) gameTickEvent)
+        foldDyn gravityHelper (232, 32) (tag (current velDyn) renderTickEvent)
 
   rectPosDyn <- move
-  
+
 
   (_, layersDyn) <- runDynamicWriterT $ do
     -- Change draw color to red
-    updateDyn <- holdDyn 0 (_tickInfo_n <$> gameTickEvent)
+
+    -- updateDyn <- holdDyn 0 renderTickEvent
     Renderer.commitLayer $ ffor rectPosDyn $ \(x, y) -> do
       SDL.rendererDrawColor renderer $= SDL.V4 255 0 0 255
       SDL.drawRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 x y) (SDL.V2 200 100))
 
-    Renderer.commitLayer $ ffor updateDyn $ \n -> do
-      SDL.rendererDrawColor renderer $= SDL.V4 0 (fromIntegral $ n `mod` 256) 255 255
+    Renderer.commitLayer $ ffor rectPosDyn $ \n -> do
+      SDL.rendererDrawColor renderer $= SDL.V4 0 (fromIntegral $ 0 `mod` 256) 255 255
 
     Renderer.commitObjectCollection debugCollection $ \c -> do
       SDL.drawRect renderer c
