@@ -65,9 +65,6 @@ gameTickRate = fromRational (1 / 20)
 getGameTickEvent :: (ReflexSDL2 t m) => m (Event t TickInfo)
 getGameTickEvent = tickLossyFromPostBuildTime gameTickRate
 
-utcTimeToNominalDiffTime :: UTCTime -> NominalDiffTime
-utcTimeToNominalDiffTime = fromRational . toRational . utctDayTime
-
 
 -- Returns an event which fires approximately `maxFPS` times per second
 getRenderTickEvent :: (ReflexSDL2 t m)
@@ -111,7 +108,6 @@ process _gameState@(GameState settings window renderer) = do
   putDebugLnE (updated interactDyn) (("Interact: " ++) . show)
 
 
-  let renderContext = Renderer.Context{Renderer.sdlWindow = window, Renderer.sdlRenderer = renderer}
   let debugRect :: Maybe (SDL.Rectangle CInt)
       debugRect = Just $ SDL.Rectangle (SDL.P $ SDL.V2 16 32) (SDL.V2 200 100)
   debugCollection <- holdDyn (ListCollection [debugRect]) (ListCollection [debugRect] <$ gameTickEvent)
@@ -140,13 +136,13 @@ process _gameState@(GameState settings window renderer) = do
       SDL.rendererDrawColor renderer $= SDL.V4 255 0 0 255
       SDL.drawRect renderer (Just $ SDL.Rectangle (SDL.P $ SDL.V2 x y) (SDL.V2 200 100))
 
-    Renderer.commitLayer $ ffor rectPosDyn $ \n -> do
+    Renderer.commitLayer $ ffor rectPosDyn $ \_n -> do
       SDL.rendererDrawColor renderer $= SDL.V4 0 (fromIntegral $ 0 `mod` 256) 255 255
 
     Renderer.commitObjectCollection debugCollection $ \c -> do
       SDL.drawRect renderer c
 
-    Renderer.commitLayer $ ffor rectPosDyn $ \n -> do
+    Renderer.commitLayer $ ffor rectPosDyn $ \_n -> do
       let tile = World.Tile.Tile Direction.North World.Tile.Grass
           pos = SDL.P $ SDL.V2 0 (15 * 32)
       Renderer.Tile.drawTile renderer pos tile
