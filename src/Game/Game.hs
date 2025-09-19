@@ -19,6 +19,9 @@ import Data.Time.Clock
 import qualified InputHandler as Input
 import qualified InputHandler.Map as Input.Map
 import qualified Renderer as Renderer
+import qualified Renderer.Tile as Renderer.Tile
+import qualified World.Tile as World.Tile
+import qualified Game.Direction as Direction
 import Renderer(ObjectCollection(..))
 
 
@@ -142,6 +145,11 @@ process _gameState@(GameState settings window renderer) = do
 
     Renderer.commitObjectCollection debugCollection $ \c -> do
       SDL.drawRect renderer c
+
+    Renderer.commitLayer $ ffor rectPosDyn $ \n -> do
+      let tile = World.Tile.Tile Direction.North World.Tile.Grass
+          pos = SDL.P $ SDL.V2 0 (15 * 32)
+      Renderer.Tile.drawTile renderer pos tile
 
   -- main render function
   performEvent_ $ ffor (updated layersDyn) $ \layers -> do
