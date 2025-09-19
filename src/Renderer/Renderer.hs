@@ -5,7 +5,7 @@
 module Renderer (
   ObjectCollection(..),
   Context(..),
-  Layer(..),
+  Layer,
   commitLayer,
   commitLayers,
   commitObjectCollection,
@@ -13,10 +13,8 @@ module Renderer (
 
 
 import qualified SDL
-import GHC.Word (Word32, Word8)
 import Reflex
 import Reflex.SDL2
-import Data.Monoid (Endo(..))
 
 -- Container for global rendering data that is agnostic of game state (other than possibly config changes)
 data Context = Context {
