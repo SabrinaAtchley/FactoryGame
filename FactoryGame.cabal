@@ -67,7 +67,11 @@ executable FactoryGame
       InputHandler.Binding,
       InputHandler.Action,
       InputHandler.Map,
+      Game.Direction,
       Renderer,
+      Renderer.Tile,
+      World,
+      World.Tile,
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -81,9 +85,10 @@ executable FactoryGame
       reflex,
       time,
       containers,
+      linear,
 
     -- Directories containing source files.
-    hs-source-dirs:   src, src/InputHandler, src/Renderer,
+    hs-source-dirs:   src, src/InputHandler, src/Renderer, src/World, src/Game
 
     -- Base language which the package is written in.
     default-language: Haskell2010
