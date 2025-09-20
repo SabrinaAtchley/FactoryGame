@@ -86,6 +86,7 @@ executable FactoryGame
       time,
       containers,
       linear,
+      lens,
 
     -- Directories containing source files.
     hs-source-dirs:   src, src/InputHandler, src/Renderer, src/World, src/Game
