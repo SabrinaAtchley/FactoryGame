@@ -15,14 +15,21 @@ import qualified SDL
 import Reflex
 import Reflex.SDL2
 import Data.Time.Clock
+import Data.Map as Data.Map
+import qualified Linear as Linear
+import Control.Lens((^.))
 
 import qualified InputHandler as Input
 import qualified InputHandler.Map as Input.Map
+
 import qualified Renderer as Renderer
-import qualified Renderer.Tile as Renderer.Tile
-import qualified World.Tile as World.Tile
-import qualified Game.Direction as Direction
 import Renderer(ObjectCollection(..))
+import qualified Renderer.Tile as Renderer.Tile
+
+import qualified World as World
+import qualified World.Tile as World.Tile
+
+import qualified Game.Direction as Direction
 
 
 data Settings = Settings {
@@ -116,7 +123,7 @@ process _gameState@(GameState settings window renderer) = do
   -- Movement code handling
   let velocityHelper vel True = addPoint2D vel
       velocityHelper vel False = subtractPoint2D vel
-      gravityHelper (x, y) (vx, vy) = (x + vx, min (y + vy + 12) (snd $ getScreenSize settings))
+      gravityHelper (x, y) (vx, vy) = (x + vx, min (y + vy + 12) (16 * 32 - 100))
       move = mdo
         velDyn <- foldDyn ($) (0, 0) $ mergeWith (.) $ [
               ( velocityHelper (8, 0) ) <$> (updated moveRightDyn)
@@ -142,10 +149,10 @@ process _gameState@(GameState settings window renderer) = do
     Renderer.commitObjectCollection debugCollection $ \c -> do
       SDL.drawRect renderer c
 
+    let world = World.debugWorld
+        mapTileGrid (Linear.V2 x y) tile acc = acc >> Renderer.Tile.drawTile renderer (SDL.P $ SDL.V2 (fromIntegral x) (fromIntegral y) * 32) tile
     Renderer.commitLayer $ ffor rectPosDyn $ \_n -> do
-      let tile = World.Tile.Tile Direction.North World.Tile.Grass
-          pos = SDL.P $ SDL.V2 0 (15 * 32)
-      Renderer.Tile.drawTile renderer pos tile
+      Data.Map.foldrWithKey mapTileGrid (return ()) $ World.unGrid (world ^. World.worldTiles)
 
   -- main render function
   performEvent_ $ ffor (updated layersDyn) $ \layers -> do
