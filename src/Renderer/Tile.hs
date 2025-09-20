@@ -29,3 +29,6 @@ drawTile renderer pos tile = do
       tileRect = SDL.Rectangle pos (SDL.V2 32 32)
   SDL.rendererDrawColor renderer $= color
   SDL.fillRect renderer (Just tileRect)
+  -- Draw outline for readability
+  SDL.rendererDrawColor renderer $= SDL.V4 230 230 230 255
+  SDL.drawRect renderer (Just tileRect)
