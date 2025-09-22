@@ -8,6 +8,7 @@ module World (
   worldTiles,
   getTile,
   setTile,
+  clearTile,
   debugWorld,
 ) where
 
@@ -44,6 +45,10 @@ getTile coord (Grid m) = Map.lookup coord m
 
 setTile :: Coord -> Tile -> Grid Tile -> Grid Tile
 setTile coord newTile (Grid m) = Grid (Map.insert coord newTile m)
+
+
+clearTile :: Coord -> Grid Tile -> Grid Tile
+clearTile coord (Grid m) = Grid (Map.delete coord m)
 
 
 debugWorld :: World
