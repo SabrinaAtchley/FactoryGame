@@ -134,14 +134,14 @@ process _gameState@(GameState settings window renderer) = do
 
   worldDyn <- foldDyn ($) World.debugWorld $ mergeWith (.) $ [
       -- Event t (World -> World)
-        (\tileCoord oldWorld -> oldWorld & World.worldTiles .~ World.setTile
+        (\tileCoord oldWorld -> World.setTile
           tileCoord
           (World.Tile.Tile Direction.North World.Tile.Wood)
-          (oldWorld ^. World.worldTiles)
+          oldWorld
         ) <$> tilePlaceEvent
-      , (\tileCoord oldWorld -> oldWorld & World.worldTiles .~ World.clearTile
+      , (\tileCoord oldWorld -> World.clearTile
           tileCoord
-          (oldWorld ^. World.worldTiles)
+          oldWorld
         ) <$> tileRemoveEvent
     ]
 

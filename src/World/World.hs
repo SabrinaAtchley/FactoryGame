@@ -15,7 +15,7 @@ module World (
 import qualified Data.Map as Map
 import Linear
 import Control.Lens.TH(makeLenses)
--- import Control.Lens(Lens', lens)
+import Control.Lens((^.), (.~), (&))
 import Data.Int(Int32)
 
 import World.Tile
@@ -39,16 +39,22 @@ $(makeLenses ''World)
 -- worldTiles = lens _worldTiles (\world newGrid -> world { _worldTiles = newGrid })
 
 
-getTile :: Coord -> Grid Tile -> Maybe Tile
-getTile coord (Grid m) = Map.lookup coord m
+getTile :: Coord -> World -> Maybe Tile
+getTile coord world = Map.lookup coord (unGrid $ world ^. worldTiles)
 
 
-setTile :: Coord -> Tile -> Grid Tile -> Grid Tile
-setTile coord newTile (Grid m) = Grid (Map.insert coord newTile m)
+setTile :: Coord -> Tile -> World -> World
+setTile coord newTile world =
+    world
+  & worldTiles
+  .~ Grid (Map.insert coord newTile $ unGrid $ world ^. worldTiles)
 
 
-clearTile :: Coord -> Grid Tile -> Grid Tile
-clearTile coord (Grid m) = Grid (Map.delete coord m)
+clearTile :: Coord -> World -> World
+clearTile coord world =
+    world
+  & worldTiles
+  .~ Grid (Map.delete coord $ unGrid $ world ^. worldTiles)
 
 
 debugWorld :: World
