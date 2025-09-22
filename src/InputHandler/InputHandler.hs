@@ -5,6 +5,7 @@ module InputHandler (
   Input.Action.Action (..),
   Input.Map.Map,
   getInputActionDyn,
+  getMouseButtonEventData,
 ) where
 
 
@@ -64,6 +65,19 @@ getMouseButtonEventWithClicks window (button, clicks) = do
     if focusedWindow == window
       then Just (mouseBtn == button && mouseClicks == clicks)
       else Nothing
+
+getMouseButtonEventData :: (ReflexSDL2 t m, MonadIO m)
+  => Window
+  -- ^ App window which needs to be focused
+  -> (MouseButton, Word8)
+  -- ^ MouseButton and click number to match against
+  -> m (Event t MouseButtonEventData)
+getMouseButtonEventData window (button, clicks) = do
+  mouseBtnEvent <- getMouseButtonEvent
+  let hasCorrectClicks (MouseButtonEventData evWindow evMotion _evWhich evButton evClicks _evPos) = (
+          evWindow == (Just window) && evMotion == Pressed && evButton == button && evClicks == clicks
+        )
+  return $ ffilter hasCorrectClicks mouseBtnEvent
 
 
 -- Returns an event that fires if keyboard triggers associated with the InputAction
