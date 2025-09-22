@@ -17,7 +17,7 @@ import Reflex.SDL2
 import Data.Time.Clock
 import Data.Map as Data.Map
 import qualified Linear as Linear
-import Control.Lens((^.))
+import Control.Lens((^.), (.~), (&))
 
 import qualified InputHandler as Input
 import qualified InputHandler.Map as Input.Map
@@ -114,11 +114,26 @@ process _gameState@(GameState settings window renderer) = do
   interactDyn <- Input.getInputActionDyn Input.Map.defaultMap window Input.Interact
   putDebugLnE (updated interactDyn) (("Interact: " ++) . show)
 
+  selectEv <- Input.getMouseButtonEventData window (ButtonLeft, 1)
+  -- putDebugLnE selectEv (("Select: " ++) . show)
+
+  let tilePlaceEvent = (<$> selectEv) $ \mouseData ->
+        let SDL.P (SDL.V2 mousePosX mousePosY) = SDL.mouseButtonEventPos mouseData
+        in Linear.V2 (mousePosX `div` 32) (mousePosY `div` 32)
+
+  putDebugLnE tilePlaceEvent (("Tile Place: " ++) . show)
+
 
   let debugRect :: Maybe (SDL.Rectangle CInt)
       debugRect = Just $ SDL.Rectangle (SDL.P $ SDL.V2 16 32) (SDL.V2 200 100)
   debugCollection <- holdDyn (ListCollection [debugRect]) (ListCollection [debugRect] <$ gameTickEvent)
 
+  worldDyn <- foldDyn (\tileCoord oldWorld ->
+      oldWorld & World.worldTiles .~ World.setTile
+        tileCoord
+        (World.Tile.Tile Direction.North World.Tile.Wood)
+        (oldWorld ^. World.worldTiles)
+    ) World.debugWorld tilePlaceEvent
 
   -- Movement code handling
   let velocityHelper vel True = addPoint2D vel
@@ -149,9 +164,13 @@ process _gameState@(GameState settings window renderer) = do
     Renderer.commitObjectCollection debugCollection $ \c -> do
       SDL.drawRect renderer c
 
-    let world = World.debugWorld
-        mapTileGrid (Linear.V2 x y) tile acc = acc >> Renderer.Tile.drawTile renderer (SDL.P $ SDL.V2 (fromIntegral x) (fromIntegral y) * 32) tile
-    Renderer.commitLayer $ ffor rectPosDyn $ \_n -> do
+    let mapTileGrid (Linear.V2 x y) tile acc = do
+          _ <- acc
+          Renderer.Tile.drawTile
+            renderer
+            (SDL.P $ SDL.V2 (fromIntegral x) (fromIntegral y) * 32)
+            tile
+    Renderer.commitLayer $ ffor worldDyn $ \world -> do
       Data.Map.foldrWithKey mapTileGrid (return ()) $ World.unGrid (world ^. World.worldTiles)
 
   -- main render function
