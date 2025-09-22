@@ -115,9 +115,13 @@ process _gameState@(GameState settings window renderer) = do
   putDebugLnE (updated interactDyn) (("Interact: " ++) . show)
 
   selectEv <- Input.getMouseButtonEventData window (ButtonLeft, 1)
+  deselectEv <- Input.getMouseButtonEventData window (ButtonRight, 1)
   -- putDebugLnE selectEv (("Select: " ++) . show)
 
   let tilePlaceEvent = (<$> selectEv) $ \mouseData ->
+        let SDL.P (SDL.V2 mousePosX mousePosY) = SDL.mouseButtonEventPos mouseData
+        in Linear.V2 (mousePosX `div` 32) (mousePosY `div` 32)
+      tileRemoveEvent = (<$> deselectEv) $ \mouseData ->
         let SDL.P (SDL.V2 mousePosX mousePosY) = SDL.mouseButtonEventPos mouseData
         in Linear.V2 (mousePosX `div` 32) (mousePosY `div` 32)
 
@@ -128,12 +132,18 @@ process _gameState@(GameState settings window renderer) = do
       debugRect = Just $ SDL.Rectangle (SDL.P $ SDL.V2 16 32) (SDL.V2 200 100)
   debugCollection <- holdDyn (ListCollection [debugRect]) (ListCollection [debugRect] <$ gameTickEvent)
 
-  worldDyn <- foldDyn (\tileCoord oldWorld ->
-      oldWorld & World.worldTiles .~ World.setTile
-        tileCoord
-        (World.Tile.Tile Direction.North World.Tile.Wood)
-        (oldWorld ^. World.worldTiles)
-    ) World.debugWorld tilePlaceEvent
+  worldDyn <- foldDyn ($) World.debugWorld $ mergeWith (.) $ [
+      -- Event t (World -> World)
+        (\tileCoord oldWorld -> oldWorld & World.worldTiles .~ World.setTile
+          tileCoord
+          (World.Tile.Tile Direction.North World.Tile.Wood)
+          (oldWorld ^. World.worldTiles)
+        ) <$> tilePlaceEvent
+      , (\tileCoord oldWorld -> oldWorld & World.worldTiles .~ World.clearTile
+          tileCoord
+          (oldWorld ^. World.worldTiles)
+        ) <$> tileRemoveEvent
+    ]
 
   -- Movement code handling
   let velocityHelper vel True = addPoint2D vel
@@ -141,6 +151,7 @@ process _gameState@(GameState settings window renderer) = do
       gravityHelper (x, y) (vx, vy) = (x + vx, min (y + vy + 12) (16 * 32 - 100))
       move = mdo
         velDyn <- foldDyn ($) (0, 0) $ mergeWith (.) $ [
+              -- Event t (Point2D a -> Point2D a)
               ( velocityHelper (8, 0) ) <$> (updated moveRightDyn)
             , ( velocityHelper (-8, 0) ) <$> (updated moveLeftDyn)
             , ( velocityHelper (0, -20) ) <$> (updated jumpDyn)
